@@ -67,6 +67,7 @@ configurations.all {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("junit:junit:4.13.2")
     implementation("com.formdev:flatlaf:3.7.1") // modern flat Swing Look-and-Feel (light/dark, HiDPI, macOS)
     implementation("org.apache.logging.log4j:log4j-api:2.21.1")
     implementation("org.apache.logging.log4j:log4j-core:2.21.1")
@@ -264,24 +265,20 @@ tasks {
             "**/analysis/gbs/repgen/RepGenAlignerPluginTest.class",     // hardcoded dev paths + external data
             "**/analysis/gbs/repgen/RepGenLDAnalysisPluginTest.class",  // hardcoded dev paths + external data
             "**/analysis/gbs/repgen/RampSeqAlignFromBlastTest.class",   // needs external BLAST output
+            "**/util/ConvertOldFastqToModernFormatTest.class",          // hardcoded /Volumes and /Users input paths
             // External database integration — need live Postgres / MonetDB instances
             "**/analysis/gobii/*Test.class",
             "**/analysis/monetdb/*Test.class",
             // RNA sequencing — need sequencing DB fixtures
             "**/analysis/rna/*Test.class",
             // Hardcoded paths / heavy fixtures (not in test data release)
-            "**/ThinSitesByPositionPluginTest.class",
             "**/LDKNNiImputationPluginTest.class",
             "**/GenomeFeatureBuilderTest.class",
-            "**/BasicGenotypeMergeRuleTest.class",
             "**/GenomeAnnosDBQueryToPositionListPluginTest.class",
-            // Performance variant with hardcoded /Volumes/... path; math covered by MLMTest
-            "**/FastMultithreadedAssociationPluginTest.class",
             // Dev-only utility class with hardcoded file paths, not a runnable test
             "**/CreateFastaOrFastqFiles.class",
         )
 
-        ignoreFailures = true // broad suite: keep non-blocking while pipeline/IO tests are fixed
         jvmArgs = baseArgs
 
         println(jvmArgs)

@@ -8,7 +8,7 @@ There are two test entry points with very different roles:
 | Task | Blocking? | Purpose |
 | ---- | --------- | ------- |
 | `./gradlew statisticsTest` | **Yes** (CI gate) | Verifies TASSEL's numeric results against R-validated expected values. |
-| `./gradlew test` | No | Runs the full suite, including pipeline/IO tests that are still being stabilized. |
+| `./gradlew test` | Yes | Runs the full suite, including pipeline and I/O tests. |
 
 ## Fetching test data
 
@@ -48,16 +48,15 @@ written to:
 If you change any analysis or statistics code, run this gate locally before
 opening a pull request.
 
-## The full suite (non-blocking)
+## The full suite
 
 ```bash
 ./gradlew test
 ```
 
-The broad `test` task runs everything but is currently **non-blocking**
-(`ignoreFailures = true`) while some pipeline and I/O tests are being fixed, and
-it excludes a set of environment-sensitive tests (certain GBS, HDF5, and
-hard-coded-path tests). Failures here are informative but do not block CI.
+The broad `test` task runs everything except a set of environment-sensitive
+tests (certain GBS, HDF5, and hard-coded-path tests). Any failing test fails the
+task, and with it the CI job and the nightly health check.
 
 ## The GBSv2 suite
 
@@ -119,8 +118,8 @@ with JDK 21 and OpenBLAS installed. It has three jobs:
    and runs `./gradlew statisticsTest`. Must be green to merge.
 3. **TASSEL 5 CI** — runs
    `./gradlew clean test koverXmlReport koverVerify --continue` and uploads
-   coverage to Codecov. The suite itself is non-blocking
-   (`ignoreFailures = true`), so this job gates on `koverVerify`.
+   coverage to Codecov. It fails if any test fails or if `koverVerify` reports
+   coverage below the gate.
 
 !!! note "Release builds skip the gate"
     `statisticsTest` is wired into `check`, and `build` depends on `check`, so

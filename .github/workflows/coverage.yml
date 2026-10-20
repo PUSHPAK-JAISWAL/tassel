@@ -116,10 +116,8 @@ jobs:
           detailed_summary: true
 
   # ──────────────────────────────────────────────────────────────────────────
-  # Full test suite + coverage.  The suite itself runs with ignoreFailures =
-  # true, so individual pipeline / IO failures are reported but do not fail the
-  # job while those tests are still being stabilized; koverVerify is what this
-  # job actually gates on.
+  # Full test suite + coverage.  Any failing test fails the job, as does
+  # koverVerify if coverage drops below the gate.
   # ──────────────────────────────────────────────────────────────────────────
   test_and_coverage:
     # Keep this display name in step with the branch-protection required check.
