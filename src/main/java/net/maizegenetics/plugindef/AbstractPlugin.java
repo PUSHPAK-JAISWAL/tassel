@@ -94,6 +94,8 @@ abstract public class AbstractPlugin implements Plugin {
 
         myCurrentInputData = input;
 
+        boolean parametersValid = false;
+
         try {
 
             preProcessParameters(input);
@@ -108,6 +110,7 @@ abstract public class AbstractPlugin implements Plugin {
             postProcessParameters();
             printParameterValues();
             checkParameters();
+            parametersValid = true;
 
             DataSet output = processData(input);
             time = LocalDateTime.now();
@@ -125,8 +128,12 @@ abstract public class AbstractPlugin implements Plugin {
                 myLogger.debug(e.getMessage(), e);
                 printUsage();
                 myLogger.error(e.getMessage());
-                if (!getListeners().isEmpty()) {
-                    System.exit(1);
+                firePluginFailed(e);
+                if (!parametersValid) {
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    }
+                    throw new IllegalStateException(e.getMessage(), e);
                 }
             }
             return null;
@@ -356,36 +363,36 @@ abstract public class AbstractPlugin implements Plugin {
 
         if (args != null) {
 
-            for (int i = 0; i < args.length; i++) {
-                String arg = args[i];
-                if (args[i].startsWith("-")) {
-                    arg = arg.substring(1);
-                    PluginParameter<?> parameter = getParameterInstance(arg);
-                    if (parameter == null) {
-                        myLogger.error("Unrecognized argument: " + args[i]);
-                        printUsage();
-                        System.exit(1);
-                    }
-                    if ((i == args.length - 1) || (args[i + 1]).startsWith("-")) {
-                        if (parameter.valueType().isAssignableFrom(Boolean.class)) {
-                            setParameter(arg, Boolean.TRUE);
-                        } else if (Number.class.isAssignableFrom(parameter.valueType())) {
+            try {
+                for (int i = 0; i < args.length; i++) {
+                    String arg = args[i];
+                    if (args[i].startsWith("-")) {
+                        arg = arg.substring(1);
+                        PluginParameter<?> parameter = getParameterInstance(arg);
+                        if (parameter == null) {
+                            throw new IllegalArgumentException("Unrecognized argument: " + args[i]);
+                        }
+                        if ((i == args.length - 1) || (args[i + 1]).startsWith("-")) {
+                            if (parameter.valueType().isAssignableFrom(Boolean.class)) {
+                                setParameter(arg, Boolean.TRUE);
+                            } else if (Number.class.isAssignableFrom(parameter.valueType()) && (i < args.length - 1)) {
+                                setParameter(arg, args[i + 1]);
+                                i++;
+                            } else {
+                                throw new IllegalArgumentException("Parameter requires a value: " + args[i]);
+                            }
+                        } else {
                             setParameter(arg, args[i + 1]);
                             i++;
-                        } else {
-                            myLogger.error("Parameter requires a value: " + args[i]);
-                            printUsage();
-                            System.exit(1);
                         }
                     } else {
-                        setParameter(arg, args[i + 1]);
-                        i++;
+                        throw new IllegalArgumentException("Argument expected to start with dash(-): " + args[i]);
                     }
-                } else {
-                    myLogger.error("Argument expected to start with dash(-): " + args[i]);
-                    printUsage();
-                    System.exit(1);
                 }
+            } catch (IllegalArgumentException e) {
+                myLogger.error(e.getMessage());
+                printUsage();
+                throw e;
             }
 
         }
@@ -455,9 +462,7 @@ abstract public class AbstractPlugin implements Plugin {
                 if (isInteractive()) {
                     throw new IllegalStateException(current.cmdLineName() + " exist multiple times for this plugin.");
                 } else {
-                    myLogger.error("-" + current.cmdLineName() + " exist multiple times for this plugin.\n");
-                    printUsage();
-                    System.exit(1);
+                    throw new IllegalArgumentException("-" + current.cmdLineName() + " exist multiple times for this plugin.");
                 }
             } else {
                 cmdLineNames.add(current.cmdLineName());
@@ -468,9 +473,7 @@ abstract public class AbstractPlugin implements Plugin {
                     if (isInteractive()) {
                         throw new IllegalStateException(current.guiName() + " must be defined.");
                     } else {
-                        myLogger.error("-" + current.cmdLineName() + " is required.\n");
-                        printUsage();
-                        System.exit(1);
+                        throw new IllegalArgumentException("-" + current.cmdLineName() + " is required.");
                     }
                 }
             }
@@ -493,18 +496,14 @@ abstract public class AbstractPlugin implements Plugin {
                         if (isInteractive()) {
                             throw new IllegalStateException(current.guiName() + ": " + filename + " doesn't exist.");
                         } else {
-                            myLogger.error("-" + current.cmdLineName() + ": " + filename + " doesn't exist\n");
-                            printUsage();
-                            System.exit(1);
+                            throw new IllegalArgumentException("-" + current.cmdLineName() + ": " + filename + " doesn't exist");
                         }
                     }
                     if (!theFile.isFile()) {
                         if (isInteractive()) {
                             throw new IllegalStateException(current.guiName() + ": " + filename + " isn't a file.");
                         } else {
-                            myLogger.error("-" + current.cmdLineName() + ": " + filename + " isn't a file\n");
-                            printUsage();
-                            System.exit(1);
+                            throw new IllegalArgumentException("-" + current.cmdLineName() + ": " + filename + " isn't a file");
                         }
                     }
                 }
@@ -519,9 +518,7 @@ abstract public class AbstractPlugin implements Plugin {
                         if (isInteractive()) {
                             throw new IllegalStateException(current.guiName() + ": Output Directory: " + outFolder + " doesn't exist.");
                         } else {
-                            myLogger.error("-" + current.cmdLineName() + ": Output Directory: " + outFolder + " doesn't exist\n");
-                            printUsage();
-                            System.exit(1);
+                            throw new IllegalArgumentException("-" + current.cmdLineName() + ": Output Directory: " + outFolder + " doesn't exist");
                         }
                     }
                 }
@@ -536,9 +533,7 @@ abstract public class AbstractPlugin implements Plugin {
                         if (isInteractive()) {
                             throw new IllegalStateException(current.guiName() + ": Directory: " + dirname + " doesn't exist.");
                         } else {
-                            myLogger.error("-" + current.cmdLineName() + ": Directory: " + dirname + " doesn't exist\n");
-                            printUsage();
-                            System.exit(1);
+                            throw new IllegalArgumentException("-" + current.cmdLineName() + ": Directory: " + dirname + " doesn't exist");
                         }
                     }
                 }
@@ -750,10 +745,8 @@ abstract public class AbstractPlugin implements Plugin {
                     myLogger.error(ex.getMessage(), ex);
                 }
             } else {
-                myLogger.error(key + ": " + e.getMessage());
-                printUsage();
                 myLogger.debug(e.getMessage(), e);
-                System.exit(1);
+                throw new IllegalArgumentException(key + ": " + e.getMessage(), e);
             }
         }
 
@@ -763,19 +756,22 @@ abstract public class AbstractPlugin implements Plugin {
     @Override
     public Plugin setParameter(String key, String value) {
 
+        if (!isInteractive()) {
+            Object converted;
+            try {
+                converted = convert(value, getParameterInstance(key).valueType());
+            } catch (Exception e) {
+                throw new IllegalArgumentException(key + ": " + e.getMessage(), e);
+            }
+            return setParameter(key, converted);
+        }
+
         try {
             PluginParameter parameter = getParameterInstance(key);
             return setParameter(key, convert(value, parameter.valueType()));
         } catch (Exception e) {
-            if (isInteractive()) {
-                throw new IllegalArgumentException(getParameterInstance(key).guiName() + ": " + e.getMessage());
-            } else {
-                myLogger.error(key + ": " + e.getMessage());
-                printUsage();
-                System.exit(1);
-            }
+            throw new IllegalArgumentException(getParameterInstance(key).guiName() + ": " + e.getMessage());
         }
-        return this;
     }
 
     private static final int TEXT_FIELD_WIDTH = 25;
@@ -1933,6 +1929,23 @@ abstract public class AbstractPlugin implements Plugin {
      */
     protected void fireDataSetReturned(DataSet data) {
         fireDataSetReturned(new PluginEvent(data));
+    }
+
+    /**
+     * Notifies listeners that this plugin failed.
+     *
+     * @param cause exception that caused the failure
+     */
+    protected void firePluginFailed(Exception cause) {
+
+        List<PluginListener> listeners;
+        synchronized (myListeners) {
+            listeners = new ArrayList<>(myListeners);
+        }
+        for (PluginListener current : listeners) {
+            current.pluginFailed(this, cause);
+        }
+
     }
 
     private static final List<String> myPrintedCitations = new ArrayList<>();

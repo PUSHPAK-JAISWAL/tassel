@@ -27,4 +27,15 @@ public interface PluginListener {
      */
     public void progress (PluginEvent event);
     
+    
+    /**
+     * Notifies that a non-interactive plugin failed. The default is to do nothing.
+     *
+     * @param plugin plugin that failed
+     * @param cause exception that caused the failure
+     */
+    public default void pluginFailed (Plugin plugin, Exception cause) {
+        // do nothing
+    }
+    
 }
