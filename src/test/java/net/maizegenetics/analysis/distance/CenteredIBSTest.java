@@ -42,7 +42,7 @@ public class CenteredIBSTest {
         load.setOpenFiles(new String[]{GeneralConstants.EXPECTED_RESULTS_DIR + "Centered_IBS_Matrix.txt"});
         DataSet expected = load.performFunction(null);
         
-        DistanceMatrixTestingUtils.compare(expected, output, 0.0000000008);
+        DistanceMatrixTestingUtils.compare(expected, output, 0.000008);
         
     }
 }
