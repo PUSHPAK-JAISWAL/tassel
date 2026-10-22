@@ -1622,7 +1622,7 @@ public class TasselPipeline implements PluginListener {
                             try {
                                 plugin.setParameters(result);
                             } catch (Exception e) {
-                                e.printStackTrace();
+                                myLogger.debug(e.getMessage(), e);
                                 // Self-describing Plugin Should already output Usage and any other error information.
                                 ExceptionUtils.logExceptionCauses(e, myLogger, Level.ERROR);
                                 System.exit(1);
@@ -1862,6 +1862,17 @@ public class TasselPipeline implements PluginListener {
             myMainFrame.getDataTreePanel().setSelectionPath(tds.getData(0));
         }
 
+    }
+
+    /**
+     * Exits with status 1 when a plugin fails in a non-interactive pipeline.
+     * The plugin has already logged the error and its usage.
+     */
+    @Override
+    public void pluginFailed(Plugin plugin, Exception cause) {
+        if (!myIsInteractive) {
+            System.exit(1);
+        }
     }
 
     /**
